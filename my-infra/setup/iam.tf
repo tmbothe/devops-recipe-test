@@ -57,16 +57,30 @@ resource "aws_iam_user_policy_attachment" "tf_backend" {
 #########################
 
 data "aws_iam_policy_document" "ecr" {
+  statement {
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
 
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecr:CompleteLayerUpload",
+      "ecr:UploadLayerPart",
+      "ecr:InitiateLayerUpload",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:PutImage"
+    ]
+    resources = [
+      aws_ecr_repository.app.arn,
+      aws_ecr_repository.proxy.arn,
+    ]
+  }
 }
 
-output "cd_user_access_key_id" {
-  description = "AWS Key ID for CD user"
-  value       = aws_iam_access_key.cd.id
-}
-
-output "cd_user_access_key_secret" {
-  description = "Access Key for CD user"
-  value       = aws_iam_access_key.cd.secret
-  sensitive   = true
+resource "aws_iam_policy" "ecr" {
+  name        = "${aws_iam_user.cd.name}-ecr"
+  description = "Allow user to manage ECR resources"
+  policy      = data.aws_iam_policy_document.ecr.json
 }
